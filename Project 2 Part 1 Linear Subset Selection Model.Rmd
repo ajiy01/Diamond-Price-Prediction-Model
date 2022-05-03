@@ -1,0 +1,110 @@
+---
+Name: Ajay Iyer
+title: "Project 2 Part 1 Linear Subset Selection Model"
+output: html_document
+---
+
+```{r}
+library(leaps)
+library(kknn)
+```
+
+```{r}
+filepath <- '/Users/ajayiyer/Desktop/DAT 402/Project 2/diamonds2_updated.csv'
+df <- read.csv(file=filepath)
+head(df)
+```
+
+```{r}
+dim(df)
+```
+
+```{r}
+regfit = regsubsets(price~., data=df, nbest=1, nvmax=8, method='exhaustive')
+summary(regfit)
+```
+
+```{r}
+regfit.full = regsubsets(price~., data=df, nbest=1, nvmax = 9, method='exhaustive')
+full.summary = summary(regfit.full)
+
+names(full.summary)
+```
+
+```{r}
+full.summary$rsq
+```
+
+```{r}
+full.summary$bic
+```
+
+```{r}
+which.min(full.summary$bic)
+```
+
+```{r}
+full.summary$which[7,]
+```
+
+```{r}
+coef(regfit.full, 7)
+```
+
+```{r}
+mod = lm(price ~ carat + cut + color + clarity + depth_prcnt + table_prcnt + length, data=df)
+summary(mod)
+```
+
+******Start Here After Cell 19 of Jupyter Notebook
+
+```{r}
+filepath <- '/Users/ajayiyer/Desktop/DAT 402/Project 2/diamonds3_updated.csv'
+df2 <- read.csv(file=filepath)
+head(df2)
+```
+
+```{r}
+ntrain=43152
+
+set.seed(1234)
+tr = sample(x=1:nrow(df), size=ntrain)
+
+train = df2[tr,]
+test = df2[-tr,]
+
+kvec = 1:10
+nk = length(kvec)
+
+outRMSE = rep(0,nk)
+inRMSE = rep(0,nk)
+
+for (i in 1:nk) {
+  kmod = kknn(price~., train=train, test=test, k=kvec[i], kernel='rectangular')
+  kmodtr = kknn(price~., train=train, test=train, k=kvec[i], kernel='rectangular')
+  
+  outRMSE[i] = sqrt(mean((test[,2]-kmod$fitted)^2))
+  inRMSE[i] = sqrt(mean((test[,2]-kmodtr$fitted)^2))
+}
+```
+
+```{r}
+#PLOTTING
+par(mfrow=c(1,2))
+
+plot(kvec, outRMSE, type='p', xlab='k', ylab='outRMSE and inRMSE', col = 'red', ylim=range(inRMSE))
+lines(kvec, inRMSE,col = 'blue')
+legend(x='topleft', legend=c('Test RMSE (outRMSE)', 'Train RMSE (inRMSE)'), lty=c(1,1), col=c('red', 'blue'), lwd=2, bty='n')
+
+plot(log(1/kvec), outRMSE, type='p', xlab='Complexity (log(1/k))', ylab='outRMSE and inRMSE', col='red', ylim=range(inRMSE))
+lines(log(1/kvec), inRMSE, col='blue')
+legend(x='topright', legend=c('Test RMSE (outRMSE)', 'Train RMSE (inRMSE)'), lty=c(1,1), col=c('red', 'blue'), lwd=2, bty='n')
+```
+
+
+
+
+
+
+
+
